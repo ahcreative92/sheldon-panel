@@ -213,10 +213,16 @@ app.post('/api/chat', (req, res) => {
   chatHistory.push({ role: 'user', content: message, ts: new Date().toISOString() });
 
   try {
-    const proc = spawnSync('openclaw', ['chat', '--agent', 'main', message], {
+    const proc = spawnSync('openclaw', ['agent', '--agent', 'main', '--message', message, '--json'], {
       encoding: 'utf8', timeout: 60000
     });
-    const reply = (proc.stdout || proc.stderr || '').trim();
+    const raw = (proc.stdout || proc.stderr || '').trim();
+    let reply = raw;
+    try {
+      const j = JSON.parse(raw);
+      reply = j?.result?.payloads?.[0]?.text || j.reply || j.output || j.text || raw;
+    } catch {}
+    reply = reply || 'No response';
     chatHistory.push({ role: 'sheldon', content: reply, ts: new Date().toISOString() });
     recordMetric('main', message.length / 4, reply.length / 4);
     res.json({ reply });
