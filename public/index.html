@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sheldon — Control Panel v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black:#080808;--white:#f4f1ec;--orange:#ff4500;--yellow:#f5c400;
+  --gray:#111;--gray2:#1c1c1c;--gray3:#2a2a2a;--muted:#555;
+  --border:rgba(255,255,255,0.07);--green:#22c55e;--red:#ef4444;--blue:#3b82f6;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--black);color:var(--white);font-family:'Instrument Sans',sans-serif;display:flex;}
+
+/* SIDEBAR */
+.sidebar{width:200px;height:100vh;background:var(--gray);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.logo{padding:1.2rem 1rem .8rem;border-bottom:1px solid var(--border);}
+.logo h1{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.05em;}
+.logo h1 em{color:var(--orange);font-style:normal;}
+.logo p{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:.15rem;}
+.status-pill{margin:.6rem 1rem;display:flex;align-items:center;gap:.4rem;font-size:.68rem;color:var(--muted);}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s;}
+.sdot.on{background:var(--green);box-shadow:0 0 5px var(--green);}
+.sdot.off{background:var(--red);}
+.nav{flex:1;padding:.3rem 0;overflow-y:auto;}
+.ni{display:flex;align-items:center;gap:.6rem;padding:.55rem 1rem;font-size:.78rem;color:var(--muted);cursor:pointer;transition:all .15s;border-left:2px solid transparent;user-select:none;}
+.ni:hover{color:var(--white);background:rgba(255,255,255,.03);}
+.ni.active{color:var(--white);border-left-color:var(--orange);background:rgba(255,69,0,.06);}
+.ni .ic{font-size:.9rem;width:16px;text-align:center;}
+.ni .badge{margin-left:auto;background:var(--orange);color:var(--black);font-size:.55rem;font-weight:700;padding:.1rem .35rem;border-radius:20px;}
+.sfooter{padding:.8rem 1rem;border-top:1px solid var(--border);}
+.gwbtns{display:flex;gap:.3rem;}
+.gwb{flex:1;padding:.35rem;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;border-radius:2px;transition:all .15s;}
+.gwb:hover{color:var(--white);border-color:var(--orange);}
+.gwb.d:hover{color:var(--red);border-color:var(--red);}
+
+/* MAIN */
+.main{flex:1;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{padding:.8rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:rgba(8,8,8,.9);backdrop-filter:blur(8px);}
+.tt{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.05em;}
+.ts{font-size:.68rem;color:var(--muted);margin-top:.1rem;}
+.save-btn{background:var(--orange);color:var(--black);border:none;font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;padding:.45rem 1.1rem;border-radius:2px;cursor:pointer;transition:background .15s;display:none;}
+.save-btn:hover{background:var(--yellow);}
+.save-btn.vis{display:block;}
+.content{flex:1;overflow-y:auto;padding:1.5rem;}
+
+/* PANELS */
+.panel{display:none;}.panel.active{display:block;}
+
+/* SECTION HEADING */
+.sh{font-size:.65rem;text-transform:uppercase;letter-spacing:.15em;color:var(--orange);margin-bottom:1rem;display:flex;align-items:center;gap:.6rem;}
+.sh::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* DASHBOARD */
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;}
+.metric-card{background:var(--gray2);border:1px solid var(--border);border-radius:6px;padding:1.2rem;}
+.mc-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.4rem;}
+.mc-value{font-family:'Bebas Neue',sans-serif;font-size:2rem;line-height:1;color:var(--white);}
+.mc-value.orange{color:var(--orange);}
+.mc-sub{font-size:.7rem;color:var(--muted);margin-top:.3rem;}
+.activity-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.activity-card{background:var(--gray2);border:1px solid var(--border);border-radius:6px;padding:1.2rem;}
+.ac-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:1rem;}
+.bar-chart{display:flex;align-items:flex-end;gap:3px;height:60px;}
+.bar{flex:1;background:rgba(255,69,0,.3);border-radius:1px 1px 0 0;min-height:2px;transition:background .2s;}
+.bar:hover{background:var(--orange);}
+.agent-calls{display:flex;flex-direction:column;gap:.5rem;}
+.ac-row{display:flex;align-items:center;gap:.7rem;}
+.ac-name{font-size:.75rem;width:90px;color:var(--muted);}
+.ac-bar-wrap{flex:1;height:5px;background:rgba(255,255,255,.05);border-radius:3px;}
+.ac-bar{height:100%;background:var(--orange);border-radius:3px;transition:width .5s;}
+.ac-count{font-size:.7rem;color:var(--muted);width:30px;text-align:right;}
+
+/* AGENTS */
+.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.8rem;margin-bottom:1.5rem;}
+.agent-card{background:var(--gray2);border:1px solid var(--border);border-radius:6px;padding:1rem;cursor:pointer;transition:all .2s;}
+.agent-card:hover{border-color:rgba(255,69,0,.3);transform:translateY(-2px);}
+.agent-card.sel{border-color:var(--orange);background:rgba(255,69,0,.05);}
+.ac-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;}
+.ac-name-big{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.04em;}
+.ac-name-big.main{color:var(--orange);}
+.ac-model{font-size:.6rem;background:rgba(255,255,255,.05);border:1px solid var(--border);padding:.15rem .4rem;border-radius:20px;color:var(--muted);}
+.ac-preview{font-size:.72rem;color:var(--muted);line-height:1.5;max-height:50px;overflow:hidden;}
+
+/* EDITOR */
+.editor-wrap{background:var(--gray2);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.editor-hdr{padding:.7rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.el{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+.ean{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--orange);}
+.editor-body{display:grid;grid-template-columns:1fr 1fr;}
+.editor-pane{position:relative;}
+.editor-pane-label{position:absolute;top:.5rem;right:.7rem;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);pointer-events:none;z-index:1;}
+textarea.code{width:100%;min-height:380px;background:var(--black);color:#e8e0d4;border:none;outline:none;padding:1rem;font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:.78rem;line-height:1.7;resize:vertical;border-right:1px solid var(--border);}
+.preview-pane{padding:1rem;min-height:380px;font-size:.78rem;line-height:1.7;color:var(--muted);overflow-y:auto;background:rgba(0,0,0,.3);}
+.preview-pane h1,.preview-pane h2,.preview-pane h3{color:var(--white);font-family:'Bebas Neue',sans-serif;margin:.5rem 0 .3rem;letter-spacing:.03em;}
+.preview-pane h1{font-size:1.4rem;}.preview-pane h2{font-size:1.1rem;}.preview-pane h3{font-size:.95rem;}
+.preview-pane strong{color:var(--white);}
+.preview-pane code{background:rgba(255,69,0,.1);color:var(--orange);padding:.1rem .3rem;border-radius:2px;font-family:monospace;font-size:.75rem;}
+.preview-pane ul,.preview-pane ol{padding-left:1.2rem;margin:.3rem 0;}
+.preview-pane li{margin:.2rem 0;}
+.model-row{display:flex;align-items:center;gap:1rem;padding:.7rem 1rem;background:rgba(255,255,255,.02);border-top:1px solid var(--border);}
+.ml{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+select{background:var(--gray3);color:var(--white);border:1px solid var(--border);padding:.3rem .6rem;border-radius:2px;font-size:.78rem;outline:none;cursor:pointer;}
+select:focus{border-color:var(--orange);}
+
+/* CHAT */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 120px);}
+.chat-messages{flex:1;overflow-y:auto;padding:.5rem 0;display:flex;flex-direction:column;gap:.8rem;}
+.msg{display:flex;gap:.8rem;max-width:85%;}
+.msg.user{align-self:flex-end;flex-direction:row-reverse;}
+.msg-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;}
+.msg.sheldon .msg-avatar{background:var(--orange);color:var(--black);}
+.msg.user .msg-avatar{background:var(--gray3);color:var(--white);}
+.msg-body{background:var(--gray2);border:1px solid var(--border);border-radius:6px;padding:.7rem .9rem;font-size:.82rem;line-height:1.6;}
+.msg.user .msg-body{background:rgba(255,69,0,.1);border-color:rgba(255,69,0,.2);}
+.msg-ts{font-size:.6rem;color:var(--muted);margin-top:.3rem;text-align:right;}
+.typing{display:flex;gap:3px;align-items:center;padding:.3rem 0;}
+.typing span{width:5px;height:5px;background:var(--muted);border-radius:50%;animation:bounce .8s infinite;}
+.typing span:nth-child(2){animation-delay:.15s;}
+.typing span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-5px);}}
+.chat-input-wrap{display:flex;gap:.6rem;margin-top:.8rem;padding-top:.8rem;border-top:1px solid var(--border);}
+.chat-input{flex:1;background:var(--gray2);border:1px solid var(--border);color:var(--white);padding:.7rem 1rem;border-radius:4px;font-size:.85rem;outline:none;font-family:inherit;resize:none;min-height:44px;max-height:120px;}
+.chat-input:focus{border-color:var(--orange);}
+.send-btn{background:var(--orange);color:var(--black);border:none;padding:.7rem 1.2rem;border-radius:4px;font-weight:700;font-size:.8rem;cursor:pointer;transition:background .15s;align-self:flex-end;}
+.send-btn:hover{background:var(--yellow);}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;}
+.chat-note{font-size:.68rem;color:var(--muted);text-align:center;margin-bottom:.5rem;}
+
+/* TASKS */
+.task-controls{display:flex;gap:.8rem;margin-bottom:1.2rem;align-items:center;}
+.project-filter{display:flex;gap:.4rem;flex-wrap:wrap;}
+.pf-btn{padding:.3rem .8rem;font-size:.7rem;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;border-radius:20px;transition:all .15s;}
+.pf-btn.active,.pf-btn:hover{border-color:var(--orange);color:var(--orange);}
+.kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+.kanban-col{background:var(--gray2);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.kc-header{padding:.7rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.kc-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;font-weight:700;}
+.kc-title.todo{color:var(--muted);}
+.kc-title.in-progress{color:var(--yellow);}
+.kc-title.done{color:var(--green);}
+.kc-count{font-size:.65rem;background:rgba(255,255,255,.07);padding:.1rem .4rem;border-radius:20px;color:var(--muted);}
+.kc-body{padding:.7rem;display:flex;flex-direction:column;gap:.5rem;min-height:200px;}
+.task-card{background:var(--black);border:1px solid var(--border);border-radius:4px;padding:.7rem .8rem;cursor:pointer;transition:all .15s;}
+.task-card:hover{border-color:rgba(255,69,0,.3);}
+.tc-title{font-size:.82rem;font-weight:600;margin-bottom:.3rem;}
+.tc-meta{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+.tc-agent{font-size:.6rem;color:var(--orange);background:rgba(255,69,0,.1);padding:.1rem .35rem;border-radius:20px;}
+.tc-priority{font-size:.6rem;padding:.1rem .35rem;border-radius:20px;}
+.tc-priority.high{background:rgba(239,68,68,.1);color:var(--red);}
+.tc-priority.medium{background:rgba(245,196,0,.1);color:var(--yellow);}
+.tc-priority.low{background:rgba(255,255,255,.05);color:var(--muted);}
+.tc-desc{font-size:.72rem;color:var(--muted);margin-top:.4rem;line-height:1.5;}
+
+/* NEW TASK / NEW AGENT FORMS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1rem;}
+.fg{display:flex;flex-direction:column;gap:.3rem;}
+.fg.full{grid-column:1/-1;}
+label{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+input[type=text],input[type=number]{background:var(--gray2);color:var(--white);border:1px solid var(--border);padding:.5rem .7rem;border-radius:2px;font-size:.82rem;outline:none;font-family:inherit;width:100%;}
+input:focus{border-color:var(--orange);}
+.flex-end{display:flex;justify-content:flex-end;gap:.6rem;}
+
+/* SKILLS */
+.skills-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.8rem;margin-bottom:1.5rem;}
+.skill-card{background:var(--gray2);border:1px solid var(--border);border-radius:6px;padding:1rem;}
+.sk-name{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.03em;margin-bottom:.3rem;}
+.sk-status{font-size:.65rem;padding:.15rem .5rem;border-radius:20px;display:inline-block;margin-bottom:.5rem;}
+.sk-status.installed{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2);}
+.sk-status.available{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border);}
+.sk-desc{font-size:.72rem;color:var(--muted);line-height:1.5;}
+.install-btn{margin-top:.7rem;width:100%;padding:.35rem;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;border-radius:2px;transition:all .15s;}
+.install-btn:hover{border-color:var(--orange);color:var(--orange);}
+
+/* LOGS */
+.log-toolbar{display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem;}
+.log-search{flex:1;background:var(--gray2);border:1px solid var(--border);color:var(--white);padding:.4rem .7rem;border-radius:2px;font-size:.78rem;outline:none;font-family:monospace;}
+.log-search:focus{border-color:var(--orange);}
+.log-box{background:var(--black);border:1px solid var(--border);border-radius:4px;padding:1rem;font-family:'SF Mono','Fira Code',monospace;font-size:.72rem;color:#777;line-height:1.6;height:calc(100vh - 250px);overflow-y:auto;white-space:pre-wrap;word-break:break-all;}
+.log-box .log-err{color:var(--red);}
+.log-box .log-warn{color:var(--yellow);}
+.log-box .log-info{color:#3b82f6;}
+.live-badge{display:flex;align-items:center;gap:.35rem;font-size:.65rem;color:var(--green);}
+.live-dot{width:5px;height:5px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* BUTTONS */
+.btn-primary{background:var(--orange);color:var(--black);border:none;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:.07em;padding:.5rem 1.2rem;border-radius:2px;cursor:pointer;transition:background .15s;}
+.btn-primary:hover{background:var(--yellow);}
+.btn-ghost{background:transparent;color:var(--white);border:1px solid var(--border);font-size:.75rem;font-weight:600;padding:.5rem 1.1rem;border-radius:2px;cursor:pointer;transition:all .15s;}
+.btn-ghost:hover{border-color:var(--orange);color:var(--orange);}
+.btn-danger{background:transparent;border:1px solid rgba(239,68,68,.3);color:var(--red);padding:.35rem .8rem;border-radius:2px;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;}
+.btn-danger:hover{background:rgba(239,68,68,.1);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--gray);border:1px solid var(--border);border-radius:8px;padding:1.5rem;width:500px;max-width:90vw;max-height:80vh;overflow-y:auto;}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.04em;margin-bottom:1.2rem;}
+
+/* TOAST */
+.toast{position:fixed;bottom:1.2rem;right:1.2rem;z-index:200;background:var(--gray2);border:1px solid var(--border);border-radius:4px;padding:.7rem 1rem;font-size:.78rem;display:none;animation:slideUp .2s ease;}
+.toast.show{display:block;}
+.toast.success{border-color:var(--green);color:var(--green);}
+.toast.error{border-color:var(--red);color:var(--red);}
+@keyframes slideUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+.mt1{margin-top:1rem;}.mt2{margin-top:1.5rem;}
+.config-pre{background:var(--black);border:1px solid var(--border);border-radius:4px;padding:1rem;font-family:monospace;font-size:.72rem;color:#888;white-space:pre-wrap;max-height:500px;overflow-y:auto;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <h1>SHEL<em>DON</em></h1>
+    <p>Control Panel v2</p>
+  </div>
+  <div class="status-pill">
+    <div class="sdot" id="sdot"></div>
+    <span id="stxt">Checking...</span>
+  </div>
+  <nav class="nav">
+    <div class="ni active" onclick="showPanel('dashboard')"><span class="ic">📊</span> Dashboard</div>
+    <div class="ni" onclick="showPanel('chat')"><span class="ic">💬</span> Chat <span class="badge" id="chatBadge" style="display:none">!</span></div>
+    <div class="ni" onclick="showPanel('agents')"><span class="ic">🤖</span> Agents</div>
+    <div class="ni" onclick="showPanel('new-agent')"><span class="ic">➕</span> New Agent</div>
+    <div class="ni" onclick="showPanel('tasks')"><span class="ic">✅</span> Tasks <span class="badge" id="taskBadge">0</span></div>
+    <div class="ni" onclick="showPanel('skills')"><span class="ic">🔧</span> Skills</div>
+    <div class="ni" onclick="showPanel('logs')"><span class="ic">📋</span> Logs</div>
+    <div class="ni" onclick="showPanel('config')"><span class="ic">⚙️</span> Config</div>
+  </nav>
+  <div class="sfooter">
+    <div class="gwbtns">
+      <button class="gwb" onclick="gwAction('restart')">Restart</button>
+      <button class="gwb d" onclick="gwAction('stop')">Stop</button>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="tt" id="topTitle">DASHBOARD</div>
+      <div class="ts" id="topSub">Clawmark AI Agency</div>
+    </div>
+    <button class="save-btn" id="saveBtn" onclick="saveAgent()">Save Changes</button>
+  </div>
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="sh">Overview</div>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="mc-label">Total Requests</div>
+          <div class="mc-value orange" id="m-requests">0</div>
+          <div class="mc-sub">All time</div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-label">Tokens Used</div>
+          <div class="mc-value" id="m-tokens">0</div>
+          <div class="mc-sub">In + Out</div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-label">Est. Cost</div>
+          <div class="mc-value" id="m-cost">$0.00</div>
+          <div class="mc-sub">USD</div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-label">Active Tasks</div>
+          <div class="mc-value orange" id="m-tasks">0</div>
+          <div class="mc-sub">Todo + In Progress</div>
+        </div>
+      </div>
+      <div class="activity-row">
+        <div class="activity-card">
+          <div class="ac-title">Daily Activity (30 days)</div>
+          <div class="bar-chart" id="barChart"></div>
+        </div>
+        <div class="activity-card">
+          <div class="ac-title">Agent Usage</div>
+          <div class="agent-calls" id="agentCalls"></div>
+        </div>
+      </div>
+      <div class="mt2" style="text-align:right;">
+        <button class="btn-ghost" onclick="resetMetrics()" style="font-size:.68rem;">Reset Metrics</button>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="panel" id="panel-chat">
+      <p class="chat-note">Chat is relayed via OpenClaw CLI. If the gateway is offline, use Telegram instead.</p>
+      <div class="chat-wrap">
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg sheldon">
+            <div class="msg-avatar">🦞</div>
+            <div class="msg-body">Hey Andres! Ready to work. What do you need today?<div class="msg-ts">Sheldon</div></div>
+          </div>
+        </div>
+        <div class="chat-input-wrap">
+          <textarea class="chat-input" id="chatInput" placeholder="Message Sheldon..." rows="1" onkeydown="chatKeydown(event)"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AGENTS -->
+    <div class="panel" id="panel-agents">
+      <div class="sh">Your Agents</div>
+      <div class="agent-grid" id="agentGrid">Loading...</div>
+      <div id="editorSection" style="display:none;">
+        <div class="sh mt2" id="editorHeading">Edit Agent</div>
+        <div class="editor-wrap">
+          <div class="editor-hdr">
+            <div><div class="el">System Prompt</div><div class="ean" id="editingName">—</div></div>
+            <button class="btn-danger" id="deleteBtn" onclick="deleteAgent()">Delete</button>
+          </div>
+          <div class="editor-body">
+            <div class="editor-pane">
+              <div class="editor-pane-label">Markdown</div>
+              <textarea class="code" id="sysEditor" oninput="markDirty();updatePreview()"></textarea>
+            </div>
+            <div class="editor-pane">
+              <div class="editor-pane-label">Preview</div>
+              <div class="preview-pane" id="sysPreview"></div>
+            </div>
+          </div>
+          <div class="model-row">
+            <span class="ml">Model</span>
+            <select id="modelSel" onchange="markDirty()">
+              <option value="anthropic/claude-haiku-4-5-20251001">Haiku 4.5 — Fast · Cheap</option>
+              <option value="anthropic/claude-sonnet-4-6">Sonnet 4.6 — Smart</option>
+              <option value="anthropic/claude-opus-4-6">Opus 4.6 — Powerful</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEW AGENT -->
+    <div class="panel" id="panel-new-agent">
+      <div class="sh">Create New Agent</div>
+      <div class="form-grid">
+        <div class="fg"><label>Agent Name</label><input type="text" id="nName" placeholder="e.g. outreach"/></div>
+        <div class="fg"><label>Model</label>
+          <select id="nModel">
+            <option value="anthropic/claude-haiku-4-5-20251001">Haiku 4.5 — Fast · Cheap</option>
+            <option value="anthropic/claude-sonnet-4-6">Sonnet 4.6 — Smart</option>
+            <option value="anthropic/claude-opus-4-6">Opus 4.6 — Powerful</option>
+          </select>
+        </div>
+        <div class="fg"><label>Role Description</label><input type="text" id="nRole" placeholder="e.g. Cold email outreach specialist"/></div>
+        <div class="fg full"><label>System Prompt (optional)</label>
+          <textarea class="code" id="nSystem" style="min-height:180px;" placeholder="Leave blank to auto-generate from role..."></textarea>
+        </div>
+      </div>
+      <div class="flex-end"><button class="btn-primary" onclick="createAgent()">Create Agent →</button></div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="panel" id="panel-tasks">
+      <div class="task-controls">
+        <button class="btn-primary" onclick="openTaskModal()">+ New Task</button>
+        <div class="project-filter" id="projectFilter"></div>
+      </div>
+      <div class="kanban">
+        <div class="kanban-col">
+          <div class="kc-header"><span class="kc-title todo">Todo</span><span class="kc-count" id="cnt-todo">0</span></div>
+          <div class="kc-body" id="col-todo"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kc-header"><span class="kc-title in-progress">In Progress</span><span class="kc-count" id="cnt-inprogress">0</span></div>
+          <div class="kc-body" id="col-inprogress"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kc-header"><span class="kc-title done">Done</span><span class="kc-count" id="cnt-done">0</span></div>
+          <div class="kc-body" id="col-done"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKILLS -->
+    <div class="panel" id="panel-skills">
+      <div class="sh">Installed Skills</div>
+      <div class="skills-grid" id="skillsGrid">Loading...</div>
+      <div class="sh mt2">Install New Skill</div>
+      <div style="display:flex;gap:.6rem;max-width:400px;">
+        <input type="text" id="skillInput" placeholder="e.g. clawhub, nano-banana-pro" style="flex:1;"/>
+        <button class="btn-primary" onclick="installSkill()">Install</button>
+      </div>
+      <div class="mt2">
+        <div class="sh">Raw Output</div>
+        <pre class="config-pre" id="skillsRaw">Click refresh to load...</pre>
+        <button class="btn-ghost mt1" onclick="loadSkillsRaw()" style="font-size:.7rem;">Refresh ↺</button>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="panel" id="panel-logs">
+      <div class="log-toolbar">
+        <input class="log-search" id="logSearch" placeholder="Filter logs..." oninput="filterLogs()"/>
+        <div class="live-badge"><div class="live-dot"></div> Live</div>
+        <button class="btn-ghost" onclick="loadLogs()" style="font-size:.68rem;padding:.35rem .8rem;">Refresh ↺</button>
+      </div>
+      <pre class="log-box" id="logBox">Connecting to log stream...</pre>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="panel" id="panel-config">
+      <div class="sh">OpenClaw Configuration</div>
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:1rem;">Read-only · API keys redacted.</p>
+      <pre class="config-pre" id="configPre">Loading...</pre>
+    </div>
+
+  </div>
+</main>
+
+<!-- TASK MODAL -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <div class="modal-title">New Task</div>
+    <div class="form-grid">
+      <div class="fg full"><label>Title</label><input type="text" id="tTitle" placeholder="Task title"/></div>
+      <div class="fg"><label>Agent</label>
+        <select id="tAgent">
+          <option value="main">Sheldon (main)</option>
+          <option value="research">Research</option>
+          <option value="prospecting">Prospecting</option>
+          <option value="copy">Copy</option>
+          <option value="design">Design</option>
+        </select>
+      </div>
+      <div class="fg"><label>Priority</label>
+        <select id="tPriority">
+          <option value="high">High</option>
+          <option value="medium" selected>Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div class="fg"><label>Project</label><input type="text" id="tProject" value="Clawmark"/></div>
+      <div class="fg full"><label>Description</label>
+        <textarea class="code" id="tDesc" style="min-height:100px;" placeholder="Optional details..."></textarea>
+      </div>
+    </div>
+    <div class="flex-end">
+      <button class="btn-ghost" onclick="closeTaskModal()">Cancel</button>
+      <button class="btn-primary" onclick="createTask()">Create Task →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let agents = [], tasks = [], metrics = {}, selectedAgent = null, isDirty = false;
+let allLogs = '', currentPanel = 'dashboard';
+let ws;
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+async function init() {
+  await checkStatus();
+  await loadDashboard();
+  connectWS();
+  setInterval(checkStatus, 15000);
+}
+
+// ── WEBSOCKET ──────────────────────────────────────────────────────────────
+function connectWS() {
+  ws = new WebSocket(`ws://${location.host}`);
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'log') {
+      allLogs += msg.data;
+      if (currentPanel === 'logs') updateLogDisplay();
+    }
+  };
+  ws.onclose = () => setTimeout(connectWS, 3000);
+}
+
+// ── STATUS ─────────────────────────────────────────────────────────────────
+async function checkStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    document.getElementById('sdot').className = 'sdot ' + (d.running ? 'on' : 'off');
+    document.getElementById('stxt').textContent = d.running ? 'Online' : 'Offline';
+  } catch {
+    document.getElementById('sdot').className = 'sdot off';
+    document.getElementById('stxt').textContent = 'Error';
+  }
+}
+
+async function gwAction(a) {
+  toast(`${a}ing...`);
+  const r = await fetch(`/api/gateway/${a}`, { method: 'POST' });
+  const d = await r.json();
+  toast(d.success ? `Gateway ${a}ed` : d.output, d.success ? 'success' : 'error');
+  setTimeout(checkStatus, 2000);
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const [mr, tr] = await Promise.all([fetch('/api/metrics'), fetch('/api/tasks')]);
+  metrics = await mr.json();
+  tasks = await tr.json();
+
+  document.getElementById('m-requests').textContent = metrics.totalRequests || 0;
+  document.getElementById('m-tokens').textContent = ((metrics.totalTokensIn || 0) + (metrics.totalTokensOut || 0)).toLocaleString();
+  document.getElementById('m-cost').textContent = '$' + (metrics.estimatedCost || 0).toFixed(4);
+  const active = tasks.filter(t => t.status !== 'done').length;
+  document.getElementById('m-tasks').textContent = active;
+  document.getElementById('taskBadge').textContent = active;
+
+  // Bar chart
+  const bc = document.getElementById('barChart');
+  const days = metrics.dailyActivity || [];
+  const max = Math.max(...days.map(d => d.calls), 1);
+  bc.innerHTML = days.slice(-30).map(d => {
+    const h = Math.max(4, (d.calls / max) * 60);
+    return `<div class="bar" style="height:${h}px" title="${escapeHtml(d.date)}: ${Number(d.calls)} calls"></div>`;
+  }).join('');
+
+  // Agent calls
+  const ac = document.getElementById('agentCalls');
+  const calls = metrics.agentCalls || {};
+  const total = Math.max(Object.values(calls).reduce((a, b) => a + b, 0), 1);
+  ac.innerHTML = Object.entries(calls).map(([name, count]) =>
+    `<div class="ac-row">
+      <div class="ac-name">${escapeHtml(name)}</div>
+      <div class="ac-bar-wrap"><div class="ac-bar" style="width:${(count/total*100)}%"></div></div>
+      <div class="ac-count">${count}</div>
+    </div>`
+  ).join('') || '<div style="font-size:.75rem;color:var(--muted);">No data yet</div>';
+}
+
+async function resetMetrics() {
+  await fetch('/api/metrics/reset', { method: 'POST' });
+  toast('Metrics reset', 'success');
+  loadDashboard();
+}
+
+// ── CHAT ───────────────────────────────────────────────────────────────────
+function chatKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  appendMsg('user', msg);
+  const typing = appendTyping();
+  document.getElementById('sendBtn').disabled = true;
+
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg })
+    });
+    const d = await r.json();
+    typing.remove();
+    appendMsg('sheldon', d.reply || 'No response');
+  } catch (e) {
+    typing.remove();
+    appendMsg('sheldon', '⚠️ Error: ' + e.message);
+  }
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function appendMsg(role, content) {
+  const msgs = document.getElementById('chatMessages');
+  const ts = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${role === 'sheldon' ? '🦞' : '👤'}</div>
+    <div class="msg-body">${escapeHtml(content).replace(/\n/g,'<br>')}<div class="msg-ts">${escapeHtml(ts)}</div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function appendTyping() {
+  const msgs = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg sheldon';
+  div.innerHTML = `<div class="msg-avatar">🦞</div><div class="msg-body"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+// ── AGENTS ─────────────────────────────────────────────────────────────────
+async function loadAgents() {
+  try {
+    const r = await fetch('/api/agents');
+    agents = await r.json();
+    renderAgentGrid();
+  } catch (e) {
+    toast('Failed to load agents: ' + e.message, 'error');
+  }
+}
+
+function renderAgentGrid() {
+  document.getElementById('agentGrid').innerHTML = agents.map(a => `
+    <div class="agent-card ${a.name === selectedAgent?.name ? 'sel' : ''}" onclick="selectAgent('${escapeHtml(a.name)}')">
+      <div class="ac-head">
+        <div class="ac-name-big ${a.name==='main'?'main':''}">${a.name==='main'?'🦞 ':''} ${escapeHtml(a.name.toUpperCase())}</div>
+        <div class="ac-model">${escapeHtml((a.model||'').split('/').pop())}</div>
+      </div>
+      <div class="ac-preview">${escapeHtml(a.systemPrompt.slice(0,100).replace(/[#*`]/g,''))}...</div>
+    </div>`).join('');
+}
+
+function selectAgent(name) {
+  selectedAgent = agents.find(a => a.name === name);
+  if (!selectedAgent) return;
+  document.getElementById('editingName').textContent = name.toUpperCase();
+  document.getElementById('sysEditor').value = selectedAgent.systemPrompt;
+  document.getElementById('modelSel').value = selectedAgent.model || 'anthropic/claude-haiku-4-5-20251001';
+  document.getElementById('editorSection').style.display = 'block';
+  document.getElementById('editorHeading').textContent = `Editing: ${name}`;
+  document.getElementById('deleteBtn').style.display = name === 'main' ? 'none' : 'inline-block';
+  document.getElementById('topSub').textContent = `Editing ${name} agent`;
+  updatePreview();
+  isDirty = false;
+  document.getElementById('saveBtn').classList.remove('vis');
+  renderAgentGrid();
+  document.getElementById('editorSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+function updatePreview() {
+  const md = document.getElementById('sysEditor').value;
+  document.getElementById('sysPreview').innerHTML = md
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>');
+}
+
+function markDirty() {
+  isDirty = true;
+  document.getElementById('saveBtn').classList.add('vis');
+}
+
+async function saveAgent() {
+  if (!selectedAgent) return;
+  await fetch(`/api/agents/${selectedAgent.name}/system`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: document.getElementById('sysEditor').value })
+  });
+  await fetch(`/api/agents/${selectedAgent.name}/model`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: document.getElementById('modelSel').value })
+  });
+  toast('Agent saved', 'success');
+  isDirty = false;
+  document.getElementById('saveBtn').classList.remove('vis');
+  await loadAgents();
+}
+
+async function deleteAgent() {
+  if (!selectedAgent || selectedAgent.name === 'main') return;
+  if (!confirm(`Delete "${selectedAgent.name}"?`)) return;
+  await fetch(`/api/agents/${selectedAgent.name}`, { method: 'DELETE' });
+  toast('Agent deleted', 'success');
+  selectedAgent = null;
+  document.getElementById('editorSection').style.display = 'none';
+  document.getElementById('saveBtn').classList.remove('vis');
+  await loadAgents();
+}
+
+async function createAgent() {
+  const name = document.getElementById('nName').value.trim().toLowerCase();
+  const model = document.getElementById('nModel').value;
+  const role = document.getElementById('nRole').value.trim();
+  const systemPrompt = document.getElementById('nSystem').value.trim();
+  if (!name) return toast('Name required', 'error');
+  const r = await fetch('/api/agents', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, model, role, systemPrompt })
+  });
+  const d = await r.json();
+  if (d.success) {
+    toast(`Agent "${name}" created`, 'success');
+    document.getElementById('nName').value = '';
+    document.getElementById('nRole').value = '';
+    document.getElementById('nSystem').value = '';
+    await loadAgents();
+    showPanel('agents');
+  } else toast(d.error, 'error');
+}
+
+// ── TASKS ──────────────────────────────────────────────────────────────────
+async function loadTasks() {
+  const r = await fetch('/api/tasks');
+  tasks = await r.json();
+  renderKanban();
+}
+
+function renderKanban(filter = null) {
+  const filtered = filter ? tasks.filter(t => t.project === filter) : tasks;
+  const statuses = ['todo', 'inprogress', 'done'];
+  statuses.forEach(s => {
+    const col = document.getElementById(`col-${s}`);
+    const cnt = document.getElementById(`cnt-${s}`);
+    const t = filtered.filter(x => x.status === s);
+    cnt.textContent = t.length;
+    col.innerHTML = t.map(task => `
+      <div class="task-card" onclick="cycleTask('${escapeHtml(task.id)}')">
+        <div class="tc-title">${escapeHtml(task.title)}</div>
+        <div class="tc-meta">
+          <span class="tc-agent">${escapeHtml(task.agent)}</span>
+          <span class="tc-priority ${escapeHtml(task.priority)}">${escapeHtml(task.priority)}</span>
+        </div>
+        ${task.description ? `<div class="tc-desc">${escapeHtml(task.description.slice(0,80))}${task.description.length>80?'...':''}</div>` : ''}
+      </div>`).join('') || `<div style="font-size:.72rem;color:var(--muted);padding:.5rem;">Empty</div>`;
+  });
+
+  // Project filters
+  const projects = [...new Set(tasks.map(t => t.project))];
+  document.getElementById('projectFilter').innerHTML =
+    ['All', ...projects].map(p =>
+      `<button class="pf-btn ${(!filter&&p==='All')||filter===p?'active':''}" onclick="renderKanban('${escapeHtml(p==='All'?'':p)}')">${escapeHtml(p)}</button>`
+    ).join('');
+
+  document.getElementById('taskBadge').textContent = tasks.filter(t => t.status !== 'done').length;
+}
+
+async function cycleTask(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  const next = { todo: 'inprogress', inprogress: 'done', done: 'todo' };
+  await fetch(`/api/tasks/${id}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: next[task.status] })
+  });
+  await loadTasks();
+}
+
+function openTaskModal() { document.getElementById('taskModal').classList.add('open'); }
+function closeTaskModal() { document.getElementById('taskModal').classList.remove('open'); }
+
+async function createTask() {
+  const title = document.getElementById('tTitle').value.trim();
+  if (!title) return toast('Title required', 'error');
+  await fetch('/api/tasks', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title, agent: document.getElementById('tAgent').value,
+      priority: document.getElementById('tPriority').value,
+      project: document.getElementById('tProject').value,
+      description: document.getElementById('tDesc').value
+    })
+  });
+  closeTaskModal();
+  document.getElementById('tTitle').value = '';
+  document.getElementById('tDesc').value = '';
+  toast('Task created', 'success');
+  await loadTasks();
+}
+
+// ── SKILLS ─────────────────────────────────────────────────────────────────
+const KNOWN_SKILLS = [
+  { name: 'clawhub', desc: 'Multi-agent delegation and orchestration', installed: true },
+  { name: 'nano-banana-pro', desc: 'AI image generation via Gemini', installed: false },
+  { name: 'github', desc: 'GitHub repo management and code commits', installed: false },
+  { name: 'summarize', desc: 'Smart document and web page summarization', installed: false },
+  { name: 'web-search', desc: 'Perplexity-powered web search', installed: true },
+  { name: 'session-memory', desc: 'Persistent memory across conversations', installed: true },
+];
+
+function renderSkillsGrid() {
+  document.getElementById('skillsGrid').innerHTML = KNOWN_SKILLS.map(s => `
+    <div class="skill-card">
+      <div class="sk-name">${s.name.toUpperCase()}</div>
+      <div class="sk-status ${s.installed?'installed':'available'}">${s.installed?'✓ Installed':'Available'}</div>
+      <div class="sk-desc">${s.desc}</div>
+      ${!s.installed ? `<button class="install-btn" onclick="installSkillByName('${s.name}')">Install →</button>` : ''}
+    </div>`).join('');
+}
+
+async function loadSkillsRaw() {
+  const r = await fetch('/api/skills');
+  const d = await r.json();
+  document.getElementById('skillsRaw').textContent = d.output;
+}
+
+async function installSkill() {
+  const name = document.getElementById('skillInput').value.trim();
+  if (!name) return toast('Enter skill name', 'error');
+  installSkillByName(name);
+}
+
+async function installSkillByName(name) {
+  toast(`Installing ${name}...`);
+  const r = await fetch('/api/skills/install', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ skill: name })
+  });
+  const d = await r.json();
+  toast(d.success ? `${name} installed!` : d.output, d.success ? 'success' : 'error');
+  loadSkillsRaw();
+}
+
+// ── LOGS ───────────────────────────────────────────────────────────────────
+async function loadLogs() {
+  const r = await fetch('/api/logs');
+  const d = await r.json();
+  allLogs = d.logs;
+  updateLogDisplay();
+}
+
+function updateLogDisplay() {
+  const filter = document.getElementById('logSearch')?.value?.toLowerCase() || '';
+  const lines = allLogs.split('\n');
+  const filtered = filter ? lines.filter(l => l.toLowerCase().includes(filter)) : lines;
+  const box = document.getElementById('logBox');
+  box.textContent = filtered.join('\n');
+  box.scrollTop = box.scrollHeight;
+}
+
+function filterLogs() { updateLogDisplay(); }
+
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+async function loadConfig() {
+  const r = await fetch('/api/config');
+  const d = await r.json();
+  document.getElementById('configPre').textContent = JSON.stringify(d, null, 2);
+}
+
+// ── PANELS ─────────────────────────────────────────────────────────────────
+const panelMeta = {
+  dashboard: ['DASHBOARD', 'Clawmark AI Agency overview'],
+  chat: ['CHAT', 'Talk to Sheldon directly'],
+  agents: ['AGENTS', 'Manage your agent team'],
+  'new-agent': ['NEW AGENT', 'Add a specialist to your team'],
+  tasks: ['TASKS', 'Project & task management'],
+  skills: ['SKILLS', 'Installed OpenClaw skills'],
+  logs: ['LOGS', 'Live gateway output'],
+  config: ['CONFIG', 'OpenClaw settings'],
+};
+
+function showPanel(name) {
+  currentPanel = name;
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  document.getElementById(`panel-${name}`)?.classList.add('active');
+  document.querySelectorAll('.ni').forEach(n => {
+    if (n.textContent.toLowerCase().includes(name.replace('-',' ').toLowerCase())) n.classList.add('active');
+  });
+  const [title, sub] = panelMeta[name] || [name.toUpperCase(), ''];
+  document.getElementById('topTitle').textContent = title;
+  document.getElementById('topSub').textContent = sub;
+  document.getElementById('saveBtn').classList.remove('vis');
+
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'agents') loadAgents();
+  if (name === 'tasks') loadTasks();
+  if (name === 'skills') { renderSkillsGrid(); loadSkillsRaw(); }
+  if (name === 'logs') loadLogs();
+  if (name === 'config') loadConfig();
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Close modal on overlay click
+document.getElementById('taskModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeTaskModal();
+});
+
+init();
+</script>
+</body>
+</html>
