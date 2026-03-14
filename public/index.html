@@ -297,14 +297,9 @@ input:focus{border-color:var(--orange);}
     <div class="panel" id="panel-chat">
       <p class="chat-note">Chat is relayed via OpenClaw CLI. If the gateway is offline, use Telegram instead.</p>
       <div class="chat-wrap">
-        <div class="chat-messages" id="chatMessages">
-          <div class="msg sheldon">
-            <div class="msg-avatar">🦞</div>
-            <div class="msg-body">Hey Andres! Ready to work. What do you need today?<div class="msg-ts">Sheldon</div></div>
-          </div>
-        </div>
+        <div class="chat-messages" id="chatMessages"></div>
         <div class="chat-input-wrap">
-          <textarea class="chat-input" id="chatInput" placeholder="Message Sheldon..." rows="1" onkeydown="chatKeydown(event)"></textarea>
+          <textarea class="chat-input" id="chatInput" placeholder="Message Sheldon..." rows="1" onkeydown="chatKeydown(event)" oninput="autoResizeInput(this)"></textarea>
           <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send →</button>
         </div>
       </div>
@@ -553,19 +548,42 @@ async function resetMetrics() {
 }
 
 // ── CHAT ───────────────────────────────────────────────────────────────────
+function autoResizeInput(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
 function chatKeydown(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
 
+async function loadChatHistory() {
+  try {
+    const r = await fetch('/api/chat/history');
+    const history = await r.json();
+    const msgs = document.getElementById('chatMessages');
+    msgs.innerHTML = '';
+    if (history.length === 0) {
+      appendMsg('sheldon', 'Hey Andres! Ready to work. What do you need today?');
+    } else {
+      history.forEach(m => appendMsg(m.role, m.content, m.ts));
+    }
+  } catch {
+    appendMsg('sheldon', 'Hey Andres! Ready to work. What do you need today?');
+  }
+}
+
 async function sendMessage() {
   const input = document.getElementById('chatInput');
+  const btn = document.getElementById('sendBtn');
   const msg = input.value.trim();
   if (!msg) return;
-  input.value = '';
 
+  input.value = '';
+  input.style.height = 'auto';
   appendMsg('user', msg);
   const typing = appendTyping();
-  document.getElementById('sendBtn').disabled = true;
+  btn.disabled = true;
 
   try {
     const r = await fetch('/api/chat', {
@@ -578,13 +596,16 @@ async function sendMessage() {
   } catch (e) {
     typing.remove();
     appendMsg('sheldon', '⚠️ Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
   }
-  document.getElementById('sendBtn').disabled = false;
 }
 
-function appendMsg(role, content) {
+function appendMsg(role, content, isoTs) {
   const msgs = document.getElementById('chatMessages');
-  const ts = new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+  const ts = isoTs
+    ? new Date(isoTs).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
+    : new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
   const div = document.createElement('div');
   div.className = `msg ${role}`;
   div.innerHTML = `
@@ -876,6 +897,7 @@ function showPanel(name) {
 
   if (name === 'dashboard') loadDashboard();
   if (name === 'agents') loadAgents();
+  if (name === 'chat') loadChatHistory();
   if (name === 'tasks') loadTasks();
   if (name === 'skills') { renderSkillsGrid(); loadSkillsRaw(); }
   if (name === 'logs') loadLogs();
